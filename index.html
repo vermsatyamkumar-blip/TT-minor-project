@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Score Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- Animated background -->
+<div class="bg-animation">
+    <div class="bg-circle c1"></div>
+    <div class="bg-circle c2"></div>
+    <div class="bg-circle c3"></div>
+</div>
+
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="nav-brand">
+        <span class="logo-icon">🎓</span>
+        <span class="logo-text">ScorePredict<span class="logo-dot">.</span></span>
+    </div>
+    <div class="nav-links">
+        <a href="#dashboard" class="nav-link active" data-section="dashboard">Dashboard</a>
+        <a href="#predict" class="nav-link" data-section="predict">Predict</a>
+        <a href="#performance" class="nav-link" data-section="performance">Model Info</a>
+    </div>
+</nav>
+
+<!-- ===================== SECTION: DASHBOARD ===================== -->
+<section id="dashboard" class="section active">
+    <div class="container">
+        <div class="section-header">
+            <h1 class="section-title">Model Dashboard</h1>
+            <p class="section-subtitle">Real-time performance metrics of your Linear Regression model</p>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card accent-blue">
+                <div class="metric-icon">📊</div>
+                <div class="metric-info">
+                    <span class="metric-label">R² Score</span>
+                    <span class="metric-value" id="r2-value">{{ "%.2f"|format(metrics.r2 * 100) }}%</span>
+                </div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: {{ metrics.r2 * 100 }}%"></div>
+                </div>
+            </div>
+            <div class="metric-card accent-green">
+                <div class="metric-icon">🎯</div>
+                <div class="metric-info">
+                    <span class="metric-label">MAE</span>
+                    <span class="metric-value">{{ metrics.mae }}</span>
+                </div>
+                <div class="metric-desc">Mean Absolute Error</div>
+            </div>
+            <div class="metric-card accent-orange">
+                <div class="metric-icon">📐</div>
+                <div class="metric-info">
+                    <span class="metric-label">RMSE</span>
+                    <span class="metric-value">{{ metrics.rmse }}</span>
+                </div>
+                <div class="metric-desc">Root Mean Squared Error</div>
+            </div>
+            <div class="metric-card accent-purple">
+                <div class="metric-icon">📈</div>
+                <div class="metric-info">
+                    <span class="metric-label">MSE</span>
+                    <span class="metric-value">{{ metrics.mse }}</span>
+                </div>
+                <div class="metric-desc">Mean Squared Error</div>
+            </div>
+        </div>
+
+        <!-- Dataset Info -->
+        <div class="info-row">
+            <div class="info-card">
+                <h3>📁 Dataset Summary</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Total Samples</span>
+                        <span class="info-val">{{ metrics.n_total }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Training Set</span>
+                        <span class="info-val">{{ metrics.n_train }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Test Set</span>
+                        <span class="info-val">{{ metrics.n_test }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Algorithm</span>
+                        <span class="info-val">Linear Regression</span>
+                    </div>
+                </div>
+            </div>
+            <div class="info-card">
+                <h3>📉 Actual vs Predicted</h3>
+                <div class="chart-container">
+                    <canvas id="scatterChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== SECTION: PREDICT ===================== -->
+<section id="predict" class="section">
+    <div class="container">
+        <div class="section-header">
+            <h1 class="section-title">Predict Final Score</h1>
+            <p class="section-subtitle">Enter student details to predict their final score</p>
+        </div>
+
+        <div class="predict-layout">
+            <!-- Input Form -->
+            <div class="predict-form-card">
+                <h3>📝 Student Information</h3>
+                <form id="predictForm">
+                    <div class="form-group">
+                        <label for="study_hours">📚 Study Hours per Week</label>
+                        <div class="text-input-wrapper">
+                            <input type="number" id="study_hours" name="study_hours_per_week"
+                                   min="0.5" max="20" step="0.1" placeholder="e.g. 4.0" required>
+                            <span class="input-unit">hrs/week</span>
+                        </div>
+                        <div class="input-hint">Enter a value between 0.5 – 20</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="attendance">📋 Attendance Percentage</label>
+                        <div class="text-input-wrapper">
+                            <input type="number" id="attendance" name="attendance_pct"
+                                   min="50" max="100" step="0.1" placeholder="e.g. 93.0" required>
+                            <span class="input-unit">%</span>
+                        </div>
+                        <div class="input-hint">Enter a value between 50 – 100</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="previous_marks">📝 Previous Marks</label>
+                        <div class="text-input-wrapper">
+                            <input type="number" id="previous_marks" name="previous_marks"
+                                   min="0" max="100" step="0.5" placeholder="e.g. 58.0" required>
+                            <span class="input-unit">/ 100</span>
+                        </div>
+                        <div class="input-hint">Enter a value between 0 – 100</div>
+                    </div>
+
+                    <button type="submit" class="btn-predict" id="predictBtn">
+                        <span class="btn-text">🔮 Predict Score</span>
+                        <span class="btn-loader" style="display:none;">⏳ Predicting...</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Result Card -->
+            <div class="predict-result-card" id="resultCard">
+                <div class="result-placeholder" id="resultPlaceholder">
+                    <div class="placeholder-icon">🎯</div>
+                    <p>Enter student details and click<br><strong>Predict Score</strong> to see results</p>
+                </div>
+                <div class="result-content" id="resultContent" style="display:none;">
+                    <div class="result-header">
+                        <span class="result-tag">Predicted Score</span>
+                    </div>
+                    <div class="result-score-ring">
+                        <svg viewBox="0 0 200 200" class="progress-ring">
+                            <circle class="progress-ring-bg" cx="100" cy="100" r="85"/>
+                            <circle class="progress-ring-fill" id="progressRing" cx="100" cy="100" r="85"/>
+                        </svg>
+                        <div class="result-score-value" id="scoreValue">--</div>
+                    </div>
+                    <div class="result-grade" id="gradeLabel">-</div>
+                    <div class="result-breakdown">
+                        <h4>Input Summary</h4>
+                        <div class="breakdown-row">
+                            <span>📚 Study Hours</span>
+                            <span id="summStudy">-</span>
+                        </div>
+                        <div class="breakdown-row">
+                            <span>📋 Attendance</span>
+                            <span id="summAttendance">-</span>
+                        </div>
+                        <div class="breakdown-row">
+                            <span>📝 Previous Marks</span>
+                            <span id="summMarks">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== SECTION: MODEL INFO ===================== -->
+<section id="performance" class="section">
+    <div class="container">
+        <div class="section-header">
+            <h1 class="section-title">Model Details</h1>
+            <p class="section-subtitle">Understand how the model makes predictions</p>
+        </div>
+
+        <div class="model-info-grid">
+            <!-- Coefficients -->
+            <div class="info-card full-width">
+                <h3>⚙️ Model Equation</h3>
+                <div class="equation-box">
+                    <code>
+                        Final Score = {{ metrics.intercept }}
+                        {% for feat, coef in metrics.coefficients.items() %}
+                            + ({{ coef }} × {{ feat }})
+                        {% endfor %}
+                    </code>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📊 Feature Importance</h3>
+                <div class="chart-container">
+                    <canvas id="featureChart"></canvas>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📐 Residual Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="residualChart"></canvas>
+                </div>
+            </div>
+
+            <div class="info-card full-width">
+                <h3>🔍 What the Metrics Mean</h3>
+                <div class="metrics-explain">
+                    <div class="explain-item">
+                        <h4>R² Score ({{ "%.2f"|format(metrics.r2 * 100) }}%)</h4>
+                        <p>The model explains <strong>{{ "%.1f"|format(metrics.r2 * 100) }}%</strong> of the variance in final scores. A perfect model has R²=100%. This is a strong fit.</p>
+                    </div>
+                    <div class="explain-item">
+                        <h4>MAE ({{ metrics.mae }})</h4>
+                        <p>On average, the predictions are off by <strong>{{ metrics.mae }} marks</strong>. This means most predictions are within ~4 marks of the actual score.</p>
+                    </div>
+                    <div class="explain-item">
+                        <h4>RMSE ({{ metrics.rmse }})</h4>
+                        <p>Penalizes larger errors more than MAE. An RMSE of <strong>{{ metrics.rmse }}</strong> indicates the model rarely makes large mistakes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <p>Built with ❤️ using Flask & Linear Regression · Student Score Predictor</p>
+</footer>
+
+<script>
+    // ---- NAVIGATION ----
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const sectionId = link.dataset.section;
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            link.classList.add('active');
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    });
+
+
+
+    // ---- PREDICTION ----
+    document.getElementById('predictForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('predictBtn');
+        btn.querySelector('.btn-text').style.display = 'none';
+        btn.querySelector('.btn-loader').style.display = 'inline';
+        btn.disabled = true;
+
+        const payload = {
+            study_hours_per_week: parseFloat(document.getElementById('study_hours').value),
+            attendance_pct: parseFloat(document.getElementById('attendance').value),
+            previous_marks: parseFloat(document.getElementById('previous_marks').value)
+        };
+
+        try {
+            const res = await fetch('/predict', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showResult(data.prediction, payload);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message);
+        } finally {
+            btn.querySelector('.btn-text').style.display = 'inline';
+            btn.querySelector('.btn-loader').style.display = 'none';
+            btn.disabled = false;
+        }
+    });
+
+    function showResult(score, inputs) {
+        document.getElementById('resultPlaceholder').style.display = 'none';
+        document.getElementById('resultContent').style.display = 'block';
+
+        // Animate score number
+        const scoreEl = document.getElementById('scoreValue');
+        animateNumber(scoreEl, 0, score, 1200);
+
+        // Progress ring
+        const ring = document.getElementById('progressRing');
+        const circumference = 2 * Math.PI * 85;
+        ring.style.strokeDasharray = circumference;
+        ring.style.strokeDashoffset = circumference;
+        setTimeout(() => {
+            const offset = circumference - (score / 100) * circumference;
+            ring.style.strokeDashoffset = offset;
+        }, 100);
+
+        // Color based on score
+        let color, grade;
+        if (score >= 80) { color = '#10b981'; grade = '🌟 Excellent'; }
+        else if (score >= 60) { color = '#3b82f6'; grade = '👍 Good'; }
+        else if (score >= 40) { color = '#f59e0b'; grade = '⚠️ Average'; }
+        else { color = '#ef4444'; grade = '❌ Needs Improvement'; }
+
+        ring.style.stroke = color;
+        document.getElementById('gradeLabel').textContent = grade;
+        document.getElementById('gradeLabel').style.color = color;
+
+        // Summary
+        document.getElementById('summStudy').textContent = inputs.study_hours_per_week + ' hrs/week';
+        document.getElementById('summAttendance').textContent = inputs.attendance_pct + '%';
+        document.getElementById('summMarks').textContent = inputs.previous_marks + '/100';
+
+        // Animate card
+        document.getElementById('resultCard').classList.add('result-animate');
+        setTimeout(() => document.getElementById('resultCard').classList.remove('result-animate'), 600);
+    }
+
+    function animateNumber(el, start, end, duration) {
+        const startTime = performance.now();
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            el.textContent = (start + (end - start) * eased).toFixed(1);
+            if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+    }
+
+    // ---- CHARTS ----
+    // Scatter: Actual vs Predicted
+    const actual = {{ metrics.actual | tojson }};
+    const predicted = {{ metrics.predicted | tojson }};
+    const scatterData = actual.map((a, i) => ({x: a, y: predicted[i]}));
+
+    new Chart(document.getElementById('scatterChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Test Predictions',
+                data: scatterData,
+                backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                borderColor: 'rgba(99, 102, 241, 1)',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+            }, {
+                label: 'Perfect Prediction',
+                data: [{x: 0, y: 0}, {x: 100, y: 100}],
+                type: 'line',
+                borderColor: 'rgba(239, 68, 68, 0.5)',
+                borderDash: [5, 5],
+                pointRadius: 0,
+                fill: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            scales: {
+                x: { title: { display: true, text: 'Actual Score', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } },
+                y: { title: { display: true, text: 'Predicted Score', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } }
+            }
+        }
+    });
+
+    // Feature Importance (absolute coefficients)
+    const coefficients = {{ metrics.coefficients | tojson }};
+    const featureNames = Object.keys(coefficients).map(k => k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+    const featureValues = Object.values(coefficients).map(Math.abs);
+    const featureColors = ['#6366f1', '#10b981', '#f59e0b'];
+
+    new Chart(document.getElementById('featureChart'), {
+        type: 'bar',
+        data: {
+            labels: featureNames,
+            datasets: [{
+                label: 'Coefficient (absolute)',
+                data: featureValues,
+                backgroundColor: featureColors.map(c => c + '99'),
+                borderColor: featureColors,
+                borderWidth: 2,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } },
+                y: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+            }
+        }
+    });
+
+    // Residuals histogram
+    const residuals = actual.map((a, i) => a - predicted[i]);
+    function histogram(arr, bins) {
+        const min = Math.min(...arr), max = Math.max(...arr);
+        const binWidth = (max - min) / bins;
+        const counts = new Array(bins).fill(0);
+        const labels = [];
+        for (let i = 0; i < bins; i++) {
+            const lo = min + i * binWidth;
+            labels.push(lo.toFixed(1));
+            arr.forEach(v => { if (v >= lo && v < lo + binWidth) counts[i]++; });
+        }
+        return { labels, counts };
+    }
+    const hist = histogram(residuals, 12);
+
+    new Chart(document.getElementById('residualChart'), {
+        type: 'bar',
+        data: {
+            labels: hist.labels,
+            datasets: [{
+                label: 'Residual Count',
+                data: hist.counts,
+                backgroundColor: 'rgba(99, 102, 241, 0.5)',
+                borderColor: '#6366f1',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { title: { display: true, text: 'Residual (Actual - Predicted)', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } },
+                y: { title: { display: true, text: 'Count', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
